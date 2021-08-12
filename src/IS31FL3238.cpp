@@ -30,7 +30,7 @@ bool IS31FL3238::begin(TwoWire &wirePort)
 	{
       return (false); //Error: Sensor did not ack
 	}
-	writeRegister(CTRL, 0b01000001);
+	writeRegister(CTRL, 0b00000001);
 	return(true);
 }
 
