@@ -30,7 +30,7 @@ bool IS31FL3238::begin(TwoWire &wirePort)
 	{
       return (false); //Error: Sensor did not ack
 	}
-	writeRegister(CTRL, 0b00000001);
+	writeRegister(CTRL, 0b01000001);
 	return(true);
 }
 
@@ -46,10 +46,10 @@ void IS31FL3238::setChannel(uint8_t channelNumber, uint8_t value) //number chann
 
 }
 
-void IS31FL3238::setAllChannels(uint8_t * values)
+void IS31FL3238::setAllChannels(uint8_t * values)//Must be fixed to overcome I2C buffer size
 {
 	uint8_t sendValue[TOTAL_CHANNELS * 4];
-	for (uint8_t channelNum = 0; channelNum < 18; channelNum++)
+	for (uint8_t channelNum = 0; channelNum < TOTAL_CHANNELS; channelNum++)
 	{
 		uint8_t base = channelNum * 4;
 		sendValue[base] = values[channelNum];
@@ -62,20 +62,23 @@ void IS31FL3238::setAllChannels(uint8_t * values)
 
 void IS31FL3238::setCurrentAllChannels(uint16_t value)
 {
-	uint8_t sendValue[36];
-	for (uint8_t channel = 0; channel < 18; channel++)
+	for (uint8_t half = 0; half < 2; half++) //Send half of the addresses at once to overcome I2C buffer limitations
 	{
-		sendValue[(channel * 2)] = (value & 0xF0) >> 8;
-		sendValue[(channel * 2) + 1] = (value & 0x0F);	
+		uint8_t sendValue[TOTAL_CHANNELS];
+		for (uint8_t channel = 0; channel < 9; channel++)
+		{
+			sendValue[(channel * 2)] = value >> 8;
+			sendValue[(channel * 2) + 1] = (value & 0x00FF);	
+		}
+		writeMultipleRegisters(CHANNEL_SCALE_BASE + (half * TOTAL_CHANNELS), sendValue, TOTAL_CHANNELS);
 	}
-	writeMultipleRegisters(CHANNEL_SCALE_BASE, sendValue, 36);
 }
 
 void IS31FL3238::setChannelCurrent(uint8_t channel, uint16_t value)
 {
 	uint8_t sendValue[2];
-	sendValue[0] = (value & 0xF0) >> 8;
-	sendValue[1] = (value & 0x0F);
+	sendValue[0] = value >> 8;
+	sendValue[1] = value & 0x00FF;
 	writeMultipleRegisters(CHANNEL_SCALE_BASE + (channel * 2), sendValue, 2);
 }
 
